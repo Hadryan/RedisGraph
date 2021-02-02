@@ -290,12 +290,12 @@ workflows:
           <<: *on-master
           requires:
             - build
-            - build_memcheck
+            # - build_memcheck
       - package_release:
           <<: *on-version-tags
           requires:
             - build
-            - build_memcheck
+            # - build_memcheck
       - deploy_branch:
           requires:
             - package_branch
