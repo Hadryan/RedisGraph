@@ -26,7 +26,6 @@ logging.basicConfig(
 )
 
 # internal aux vars
-github_repo_name, github_sha, github_actor = extract_git_vars()
 redisbenchmark_go_link = "https://s3.amazonaws.com/benchmarks.redislabs/redisgraph/redisgraph-benchmark-go/unstable/redisgraph-benchmark-go_linux_amd64"
 remote_dataset_file = "/tmp/dump.rdb"
 remote_module_file = "/tmp/redisgraph.so"
@@ -40,9 +39,9 @@ parser = argparse.ArgumentParser(
 )
 default_terraform_bin = os.getenv("TERRAFORM_BIN_PATH", "terraform")
 
-parser.add_argument("--github_actor", type=str, default=github_actor)
-parser.add_argument("--github_repo", type=str, default=github_repo_name)
-parser.add_argument("--github_sha", type=str, default=github_sha)
+parser.add_argument("--github_actor", type=str, default=None)
+parser.add_argument("--github_repo", type=str, default=None)
+parser.add_argument("--github_sha", type=str, default=None)
 parser.add_argument("--redis_module", type=str, default="RedisGraph")
 parser.add_argument("--terraform_bin_path", type=str, default=default_terraform_bin)
 parser.add_argument("--module_path", type=str, default="./../../src/redisgraph.so")
@@ -66,24 +65,38 @@ tf_bin_path = args.terraform_bin_path
 tf_github_actor = args.github_actor
 tf_github_repo = args.github_repo
 tf_github_sha = args.github_sha
+if tf_github_actor is None:
+    github_repo_name, github_sha, github_actor = extract_git_vars()
+    tf_github_actor = github_actor
+if tf_github_repo is None:
+    github_repo_name, github_sha, github_actor = extract_git_vars()
+    tf_github_repo = github_repo_name
+if tf_github_sha is None:
+    github_repo_name, github_sha, github_actor = extract_git_vars()
+    tf_github_sha = github_sha
+
 tf_redis_module = args.redis_module
 tf_setup_name_sufix = "{}-{}".format(args.setup_name_sufix, tf_github_sha)
 s3_bucket_name = args.s3_bucket_name
 local_module_file = args.module_path
 
-if os.getenv("EC2_ACCESS_KEY", None) is None:
+if os.getenv("PERFORMANCE_EC2_ACCESS_KEY", None) is None:
     logging.error("missing required EC2_ACCESS_KEY env variable")
     exit(1)
-if os.getenv("EC2_PRIVATE_PEM", None) is None:
+if os.getenv("PERFORMANCE_EC2_PRIVATE_PEM", None) is None:
     logging.error("missing required EC2_PRIVATE_PEM env variable")
     exit(1)
-if os.getenv("EC2_REGION", None) is None:
+if os.getenv("PERFORMANCE_EC2_REGION", None) is None:
     logging.error("missing required EC2_REGION env variable")
     exit(1)
-if os.getenv("EC2_SECRET_KEY", None) is None:
+if os.getenv("PERFORMANCE_EC2_SECRET_KEY", None) is None:
     logging.error("missing required EC2_SECRET_KEY env variable")
     exit(1)
 
+# Set AWS environment variables
+os.environ["EC2_ACCESS_KEY"] = os.environ["PERFORMANCE_EC2_ACCESS_KEY"]
+os.environ["EC2_REGION"] = os.environ["PERFORMANCE_EC2_REGION"]
+os.environ["EC2_SECRET_KEY"] = os.environ["PERFORMANCE_EC2_SECRET_KEY"]
 
 logging.info("Using the following vars on terraform deployment:")
 logging.info("\tterraform bin path: {}".format(tf_bin_path))
@@ -97,7 +110,7 @@ logging.info("\tsetup_name sufix: {}".format(tf_setup_name_sufix))
 files = pathlib.Path().glob("*.yml")
 remote_benchmark_setups = pathlib.Path().glob("./aws/tf-*")
 
-pem = os.getenv("EC2_PRIVATE_PEM", None)
+pem = os.getenv("PERFORMANCE_EC2_PRIVATE_PEM", None)
 with open(private_key, "w") as tmp_private_key_file:
     tmp_private_key_file.write(pem)
 
