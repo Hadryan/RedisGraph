@@ -249,7 +249,10 @@ jobs:
           command: |
               cd ./tests/benchmarks
               python3 remote-runner.py --terraform_bin_path /workspace/terraform \
-                                       --module_path /workspace/$MODULE_ARTIFACT
+                                       --module_path /workspace/$MODULE_ARTIFACT \
+                                       --github_actor $CIRCLE_USERNAME \
+                                       --github_repo $CIRCLE_REPOSITORY_URL \
+                                       --github_sha $CIRCLE_SHA1
 
 
 
