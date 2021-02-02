@@ -80,23 +80,18 @@ tf_setup_name_sufix = "{}-{}".format(args.setup_name_sufix, tf_github_sha)
 s3_bucket_name = args.s3_bucket_name
 local_module_file = args.module_path
 
-if os.getenv("PERFORMANCE_EC2_ACCESS_KEY", None) is None:
+if os.getenv("EC2_ACCESS_KEY", None) is None:
     logging.error("missing required EC2_ACCESS_KEY env variable")
     exit(1)
 if os.getenv("PERFORMANCE_EC2_PRIVATE_PEM", None) is None:
     logging.error("missing required EC2_PRIVATE_PEM env variable")
     exit(1)
-if os.getenv("PERFORMANCE_EC2_REGION", None) is None:
+if os.getenv("EC2_REGION", None) is None:
     logging.error("missing required EC2_REGION env variable")
     exit(1)
-if os.getenv("PERFORMANCE_EC2_SECRET_KEY", None) is None:
+if os.getenv("EC2_SECRET_KEY", None) is None:
     logging.error("missing required EC2_SECRET_KEY env variable")
     exit(1)
-
-# Set AWS environment variables
-os.environ["EC2_ACCESS_KEY"] = os.environ["PERFORMANCE_EC2_ACCESS_KEY"]
-os.environ["EC2_REGION"] = os.environ["PERFORMANCE_EC2_REGION"]
-os.environ["EC2_SECRET_KEY"] = os.environ["PERFORMANCE_EC2_SECRET_KEY"]
 
 logging.info("Using the following vars on terraform deployment:")
 logging.info("\tterraform bin path: {}".format(tf_bin_path))
