@@ -10,6 +10,7 @@ if [[ -z "${TF_EXE_FILE_NAME}" ]]; then
     unzip terraform_0.13.5_linux_amd64.zip
     mv terraform /usr/local/sbin
     rm terraform_0.13.5_linux_amd64.zip
+    TF_EXE_FILE_NAME=/usr/local/sbin/terraform
 
 fi
 echo "Checking terraform version..."
