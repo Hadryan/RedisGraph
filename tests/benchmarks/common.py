@@ -7,6 +7,7 @@ from git import Repo
 from jsonpath_ng import jsonpath, parse
 import boto3
 import requests
+from python_terraform import Terraform
 from tqdm import tqdm
 
 
@@ -85,9 +86,20 @@ def checkDatasetRemoteRequirements(
 
 
 def setupRemoteEnviroment(
-    tf, tf_github_sha, tf_github_actor, tf_setup_name, tf_github_repo, tf_redis_module
+    tf: Terraform,
+    tf_github_sha,
+    tf_github_actor,
+    tf_setup_name,
+    tf_github_repo,
+    tf_redis_module,
 ):
-    return_code, stdout, stderr = tf.init(capture_output=True)
+    # key    = "benchmarks/infrastructure/tf-oss-redisgraph-standalone-r5.tfstate"
+    return_code, stdout, stderr = tf.init(
+        capture_output=True,
+        backend_config={
+            "key": "benchmarks/infrastructure/{}.tfstate".format(tf_setup_name)
+        },
+    )
     return_code, stdout, stderr = tf.refresh()
     tf_output = tf.output()
     server_private_ip = tf_output["server_private_ip"]["value"][0]

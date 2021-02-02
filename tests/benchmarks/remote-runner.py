@@ -59,6 +59,14 @@ parser.add_argument(
     help="uploads the result files and configuration file to public ci.benchmarks.redislabs bucket. Proper credentials are required",
 )
 
+parser.add_argument(
+    "--skip-env-vars-verify",
+    default=False,
+    action="store_true",
+    help="skip environment variables check",
+)
+
+
 args = parser.parse_args()
 
 tf_bin_path = args.terraform_bin_path
@@ -80,22 +88,23 @@ tf_setup_name_sufix = "{}-{}".format(args.setup_name_sufix, tf_github_sha)
 s3_bucket_name = args.s3_bucket_name
 local_module_file = args.module_path
 
-EC2_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID", None)
-EC2_PRIVATE_PEM = os.getenv("EC2_PRIVATE_PEM", None)
-EC2_REGION = os.getenv("AWS_DEFAULT_REGION", None)
-EC2_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", None)
+if args.skip_env_vars_verify is True:
+    EC2_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID", None)
+    EC2_REGION = os.getenv("AWS_DEFAULT_REGION", None)
+    EC2_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", None)
+    if EC2_ACCESS_KEY is None or EC2_ACCESS_KEY == "":
+        logging.error("missing required AWS_ACCESS_KEY_ID env variable")
+        exit(1)
+    if EC2_REGION is None or EC2_REGION == "":
+        logging.error("missing required AWS_DEFAULT_REGION env variable")
+        exit(1)
+    if EC2_SECRET_KEY is None or EC2_SECRET_KEY == "":
+        logging.error("missing required AWS_SECRET_ACCESS_KEY env variable")
+        exit(1)
 
-if EC2_ACCESS_KEY is None or EC2_ACCESS_KEY == "":
-    logging.error("missing required AWS_ACCESS_KEY_ID env variable")
-    exit(1)
+EC2_PRIVATE_PEM = os.getenv("EC2_PRIVATE_PEM", None)
 if EC2_PRIVATE_PEM is None or EC2_PRIVATE_PEM == "":
     logging.error("missing required EC2_PRIVATE_PEM env variable")
-    exit(1)
-if EC2_REGION is None or EC2_REGION == "":
-    logging.error("missing required AWS_DEFAULT_REGION env variable")
-    exit(1)
-if EC2_SECRET_KEY is None or EC2_SECRET_KEY == "":
-    logging.error("missing required AWS_SECRET_ACCESS_KEY env variable")
     exit(1)
 
 logging.info("Using the following vars on terraform deployment:")
