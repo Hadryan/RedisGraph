@@ -4,6 +4,7 @@ import sys
 import pysftp
 import paramiko
 from git import Repo
+from jsonpath_ng import jsonpath, parse
 
 def viewBar_no_tqdm(a, b):
     res = a / int(b) * 100
@@ -227,3 +228,43 @@ def extract_git_vars():
     github_sha = github_repo.head.object.hexsha
     github_actor = github_repo.config_reader().get_value("user", "name")
     return github_repo_name, github_sha, github_actor
+
+
+def validateResultExpectations(benchmark_config, results_dict, result):
+    for expectation in benchmark_config["expectations"]:
+        for comparison_mode, rules in expectation.items():
+            for jsonpath, expected_value in rules.items():
+                jsonpath_expr = parse(jsonpath)
+                actual_value = float(jsonpath_expr.find(results_dict)[0].value)
+                expected_value = float(expected_value)
+                if comparison_mode == "eq":
+                    if actual_value != expected_value:
+                        result &= False
+                        logging.error(
+                            "Condition {} {} {} is False. Failing test expectations".format(
+                                actual_value,
+                                comparison_mode,
+                                expected_value,
+                            )
+                        )
+                if comparison_mode == "le":
+                    if actual_value > expected_value:
+                        result &= False
+                        logging.error(
+                            "Condition {} {} {} is False. Failing test expectations".format(
+                                actual_value,
+                                comparison_mode,
+                                expected_value,
+                            )
+                        )
+                if comparison_mode == "ge":
+                    if actual_value < expected_value:
+                        result &= False
+                        logging.error(
+                            "Condition {} {} {} is False. Failing test expectations".format(
+                                actual_value,
+                                comparison_mode,
+                                expected_value,
+                            )
+                        )
+    return result

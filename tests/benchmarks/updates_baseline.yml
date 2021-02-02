@@ -14,5 +14,6 @@ clientconfig:
 queries:
   - { q: "MATCH (n) SET n.v = 1", ratio: 1 }
 expectations: 
-  - le: { OverallClientQuantiles.q50: 0.6 }
-  - ge: { OverallQueryRates.Total: 20000 }
+  - eq: { $.Totals.Total.Errors: 0 }
+  - le: { $.OverallClientQuantiles.Total.q50: 2.0 }
+  - ge: { $.OverallQueryRates.Total: 20000 }

@@ -4,6 +4,7 @@ from python_terraform import Terraform
 import argparse
 import os
 import logging
+import json
 
 from common import (
     setupRemoteEnviroment,
@@ -11,10 +12,11 @@ from common import (
     setupRemoteBenchmark,
     runRemoteBenchmark,
     extract_git_vars,
+    validateResultExpectations,
 )
 
 # logging settings
-logging.basicConfig(    
+logging.basicConfig(
     format="%(asctime)s %(levelname)-4s %(message)s",
     level=logging.INFO,
     datefmt="%Y-%m-%d %H:%M:%S",
@@ -79,9 +81,10 @@ files = pathlib.Path().glob("*.yml")
 remote_benchmark_setups = pathlib.Path().glob("./aws/tf-*")
 
 pem = os.getenv("EC2_PRIVATE_PEM", None)
-with open(private_key,"w") as tmp_private_key_file:
+with open(private_key, "w") as tmp_private_key_file:
     tmp_private_key_file.write(pem)
 
+return_code = 0
 for f in files:
     with open(f, "r") as stream:
         benchmark_config = yaml.safe_load(stream)
@@ -89,11 +92,13 @@ for f in files:
             for remote_setup in benchmark_config["ci"]["terraform"]:
                 # Setup Infra
                 logging.info(
-                    "Deploying test defined in {} on AWS using {}".format(f, remote_setup)
+                    "Deploying test defined in {} on AWS using {}".format(
+                        f, remote_setup
+                    )
                 )
                 tf_setup_name = "{}{}".format(remote_setup, tf_setup_name_sufix)
                 logging.info("Using full setup name: {}".format(tf_setup_name))
-                tf = Terraform(working_dir=remote_setup,terraform_bin_path=tf_bin_path)
+                tf = Terraform(working_dir=remote_setup, terraform_bin_path=tf_bin_path)
                 (
                     return_code,
                     username,
@@ -129,10 +134,31 @@ for f in files:
 
                 # run the benchmark
                 runRemoteBenchmark(
-                    client_public_ip, username, private_key,server_private_ip, server_plaintext_port, benchmark_config, remote_results_file, local_results_file
+                    client_public_ip,
+                    username,
+                    private_key,
+                    server_private_ip,
+                    server_plaintext_port,
+                    benchmark_config,
+                    remote_results_file,
+                    local_results_file,
                 )
+
+                # check requirements
+                result = True
+                if "expectations" in benchmark_config:
+                    results_dict = None
+                    with open(local_results_file, "r") as json_file:
+                        results_dict = json.load(json_file)
+                    result = validateResultExpectations(
+                        benchmark_config, results_dict, result
+                    )
+                    if result != True:
+                        return_code &= 1
 
                 # tear-down
                 logging.info("Tearing down setup")
                 tf_output = tf.destroy()
                 logging.info("Tear-down completed")
+
+exit(return_code)
