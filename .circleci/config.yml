@@ -248,12 +248,15 @@ jobs:
           name: Run CI benchmarks on aws
           command: |
               cd ./tests/benchmarks
-              EC2_ACCESS_KEY=$PERFORMANCE_EC2_ACCESS_KEY EC2_SECRET_KEY=$PERFORMANCE_EC2_SECRET_KEY EC2_REGION=$PERFORMANCE_EC2_REGION python3 remote-runner.py \
-                                      --terraform_bin_path /workspace/terraform \
-                                      --module_path /workspace/$MODULE_ARTIFACT \
-                                      --github_actor $CIRCLE_USERNAME \
-                                      --github_repo $CIRCLE_REPOSITORY_URL \
-                                      --github_sha $CIRCLE_SHA1
+              export EC2_ACCESS_KEY=$PERFORMANCE_EC2_ACCESS_KEY 
+              export EC2_SECRET_KEY=$PERFORMANCE_EC2_SECRET_KEY 
+              export EC2_REGION=$PERFORMANCE_EC2_REGION
+              python3 remote-runner.py \
+                --terraform_bin_path /workspace/terraform \
+                --module_path /workspace/$MODULE_ARTIFACT \
+                --github_actor $CIRCLE_USERNAME \
+                --github_repo $CIRCLE_REPOSITORY_URL \
+                --github_sha $CIRCLE_SHA1
 
 
 
@@ -322,8 +325,8 @@ workflows:
             - package_release
       - performance_ci_automation:
           <<: *on-any-branch
-          requires:
-            - build
+          # requires:
+            # - build
 
   nightly:
     triggers:
