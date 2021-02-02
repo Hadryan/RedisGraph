@@ -23,16 +23,8 @@ commands:
             PIP=1 ./deps/readies/bin/getpy3
             python3 -m pip install -r ./deps/readies/paella/requirements.txt
 
-jobs:
-  build:
-    docker:
-      - image: 'redisfab/rmbuilder:6.0.9-x64-bionic'
-        environment:
-            LANG: en_US.UTF-8  
-            LANGUAGE: en_US.UTF-8
-            LC_ALL: en_US.UTF-8     
+  setup-prerequisits:
     steps:
-      - checkout
       - run:
           name: Fetch submodules
           command: |
@@ -59,6 +51,17 @@ jobs:
               locale-gen --purge en_US.UTF-8
               dpkg-reconfigure -f noninteractive locales
 
+jobs:
+  build:
+    docker:
+      - image: 'redisfab/rmbuilder:6.0.9-x64-bionic'
+        environment:
+            LANG: en_US.UTF-8  
+            LANGUAGE: en_US.UTF-8
+            LC_ALL: en_US.UTF-8     
+    steps:
+      - checkout
+      - setup-prerequisits
       - setup-automation
 
       # Validate source complies with formatting
@@ -110,6 +113,7 @@ jobs:
             - '*.so'
             - ramp.yml
             - build
+
   build_memcheck:
     docker:
       - image: 'redisfab/rmbuilder:6.0.9-x64-bionic'
@@ -117,6 +121,19 @@ jobs:
       - checkout
       - attach_workspace:
           at: /workspace
+      
+      - setup-prerequisits
+      - setup-automation
+
+      # Load GraphBLAS from cache if possible.
+      - restore_cache:
+          keys:
+          - GraphBLAS4.0-{{checksum "./deps/GraphBLAS/README.md"}}
+
+      # Load libcypher-parser from cache if possible.
+      - restore_cache:
+          keys:
+          - libcypher-parser-{{checksum "./deps/libcypher-parser/lib/src/parser.leg"}}
       - run:
           name: Test for memory leaks
           command: |
