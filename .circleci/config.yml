@@ -239,8 +239,11 @@ jobs:
       - attach_workspace:
           at: /workspace
       - run:
-          name: Install remote benchmark dependencies
+          name: Install remote benchmark tool dependencies
           command: TF_EXE_FILE_NAME=/workspace/terraform ./tests/benchmarks/aws/install_deps.sh
+      - run:
+          name: Install remote benchmark python dependencies
+          command: python3 -m pip install -r ./tests/benchmarks/remote-requirements.txt
 
 
 on-any-branch: &on-any-branch

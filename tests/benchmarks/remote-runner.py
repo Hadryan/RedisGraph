@@ -44,6 +44,11 @@ parser.add_argument("--redis_module", type=str, default="RedisGraph")
 parser.add_argument("--terraform_bin_path", type=str, default=default_terraform_bin)
 parser.add_argument("--module_path", type=str, default="./../../src/redisgraph.so")
 parser.add_argument("--setup_name_sufix", type=str, default="")
+parser.add_argument('--s3_bucket_name', type=str, default="ci.benchmarks.redislabs",
+                    help="S3 bucket name.")
+parser.add_argument('--upload_results_s3', default=False, action='store_true',
+                    help="uploads the result files and configuration file to public ci.benchmarks.redislabs bucket. Proper credentials are required")
+
 args = parser.parse_args()
 
 tf_bin_path = args.terraform_bin_path
@@ -52,6 +57,7 @@ tf_github_repo = args.github_repo
 tf_github_sha = args.github_sha
 tf_redis_module = args.redis_module
 tf_setup_name_sufix = "{}-{}".format(args.setup_name_sufix, tf_github_sha)
+s3_bucket_name = args.s3_bucket_name
 local_module_file = args.module_path
 
 if os.getenv("EC2_ACCESS_KEY", None) is None:
@@ -88,6 +94,13 @@ return_code = 0
 for f in files:
     with open(f, "r") as stream:
         benchmark_config = yaml.safe_load(stream)
+        test_name = benchmark_config["name"]
+        s3_bucket_path = "{project}/results/{test_name}/".format(project=tf_redis_module, test_name=test_name)
+        if args.output_file_prefix != "":
+            s3_bucket_path = "{}{}/".format(s3_bucket_path, args.output_file_prefix)
+        s3_uri = "https://s3.amazonaws.com/{bucket_name}/{bucket_path}".format(bucket_name=s3_bucket_name,
+                                                                               bucket_path=s3_bucket_path)
+
         if "ci" in benchmark_config and "terraform" in benchmark_config["ci"]:
             for remote_setup in benchmark_config["ci"]["terraform"]:
                 # Setup Infra
