@@ -244,6 +244,13 @@ jobs:
       - run:
           name: Install remote benchmark python dependencies
           command: python3 -m pip install -r ./tests/benchmarks/remote-requirements.txt
+      - run:
+          name: Run CI benchmarks on aws
+          command: |
+              cd ./tests/benchmarks
+              python3 remote-runner.py --terraform_bin_path /workspace/terraform \
+                                       --module_path /workspace/$MODULE_ARTIFACT
+
 
 
 on-any-branch: &on-any-branch

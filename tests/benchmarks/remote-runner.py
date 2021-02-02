@@ -5,6 +5,8 @@ import argparse
 import os
 import logging
 import json
+import datetime as dt
+
 
 from common import (
     setupRemoteEnviroment,
@@ -13,6 +15,7 @@ from common import (
     runRemoteBenchmark,
     extract_git_vars,
     validateResultExpectations,
+    upload_artifacts_to_s3,
 )
 
 # logging settings
@@ -44,10 +47,18 @@ parser.add_argument("--redis_module", type=str, default="RedisGraph")
 parser.add_argument("--terraform_bin_path", type=str, default=default_terraform_bin)
 parser.add_argument("--module_path", type=str, default="./../../src/redisgraph.so")
 parser.add_argument("--setup_name_sufix", type=str, default="")
-parser.add_argument('--s3_bucket_name', type=str, default="ci.benchmarks.redislabs",
-                    help="S3 bucket name.")
-parser.add_argument('--upload_results_s3', default=False, action='store_true',
-                    help="uploads the result files and configuration file to public ci.benchmarks.redislabs bucket. Proper credentials are required")
+parser.add_argument(
+    "--s3_bucket_name",
+    type=str,
+    default="ci.benchmarks.redislabs",
+    help="S3 bucket name.",
+)
+parser.add_argument(
+    "--upload_results_s3",
+    default=False,
+    action="store_true",
+    help="uploads the result files and configuration file to public ci.benchmarks.redislabs bucket. Proper credentials are required",
+)
 
 args = parser.parse_args()
 
@@ -90,16 +101,30 @@ pem = os.getenv("EC2_PRIVATE_PEM", None)
 with open(private_key, "w") as tmp_private_key_file:
     tmp_private_key_file.write(pem)
 
+
+def get_run_full_filename(test_name, deployment_type, git_sha, start_time_str):
+    benchmark_output_filename = (
+        "{time_str}-{test_name}-{deployment_type}-{git_sha}.json".format(
+            time_str=start_time_str,
+            test_name=test_name,
+            deployment_type=deployment_type,
+            git_sha=git_sha,
+        )
+    )
+    return benchmark_output_filename
+
+
 return_code = 0
 for f in files:
     with open(f, "r") as stream:
         benchmark_config = yaml.safe_load(stream)
         test_name = benchmark_config["name"]
-        s3_bucket_path = "{project}/results/{test_name}/".format(project=tf_redis_module, test_name=test_name)
-        if args.output_file_prefix != "":
-            s3_bucket_path = "{}{}/".format(s3_bucket_path, args.output_file_prefix)
-        s3_uri = "https://s3.amazonaws.com/{bucket_name}/{bucket_path}".format(bucket_name=s3_bucket_name,
-                                                                               bucket_path=s3_bucket_path)
+        s3_bucket_path = "{project}/results/{test_name}/".format(
+            project=tf_redis_module, test_name=test_name
+        )
+        s3_uri = "https://s3.amazonaws.com/{bucket_name}/{bucket_path}".format(
+            bucket_name=s3_bucket_name, bucket_path=s3_bucket_path
+        )
 
         if "ci" in benchmark_config and "terraform" in benchmark_config["ci"]:
             for remote_setup in benchmark_config["ci"]["terraform"]:
@@ -144,7 +169,16 @@ for f in files:
                 setupRemoteBenchmark(
                     client_public_ip, username, private_key, redisbenchmark_go_link
                 )
-
+                start_time = dt.datetime.now()
+                start_time_str = start_time.strftime("%Y-%m-%d-%H-%M-%S")
+                local_benchmark_output_filename = get_run_full_filename(
+                    test_name, "", tf_github_sha, start_time_str
+                )
+                logging.info(
+                    "Will store benchmark json output to local file {}".format(
+                        local_benchmark_output_filename
+                    )
+                )
                 # run the benchmark
                 runRemoteBenchmark(
                     client_public_ip,
@@ -154,20 +188,25 @@ for f in files:
                     server_plaintext_port,
                     benchmark_config,
                     remote_results_file,
-                    local_results_file,
+                    local_benchmark_output_filename,
                 )
 
                 # check requirements
                 result = True
                 if "expectations" in benchmark_config:
                     results_dict = None
-                    with open(local_results_file, "r") as json_file:
+                    with open(local_benchmark_output_filename, "r") as json_file:
                         results_dict = json.load(json_file)
                     result = validateResultExpectations(
                         benchmark_config, results_dict, result
                     )
                     if result != True:
                         return_code &= 1
+
+                if args.upload_results_s3:
+                    logging.info("Uploading results to s3")
+                    artifacts = [local_benchmark_output_filename]
+                    upload_artifacts_to_s3(artifacts, s3_bucket_name, s3_bucket_path)
 
                 # tear-down
                 logging.info("Tearing down setup")

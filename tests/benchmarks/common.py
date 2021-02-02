@@ -5,6 +5,9 @@ import pysftp
 import paramiko
 from git import Repo
 from jsonpath_ng import jsonpath, parse
+import boto3
+import requests
+from tqdm import tqdm
 
 def viewBar_no_tqdm(a, b):
     res = a / int(b) * 100
@@ -268,3 +271,17 @@ def validateResultExpectations(benchmark_config, results_dict, result):
                             )
                         )
     return result
+
+
+def upload_artifacts_to_s3(artifacts, s3_bucket_name, s3_bucket_path):
+    logging.info("Uploading results to s3")
+    s3 = boto3.resource('s3')
+    bucket = s3.Bucket(s3_bucket_name)
+    progress = tqdm(unit="files", total=len(artifacts))
+    for input in artifacts:
+        object_key = '{bucket_path}{filename}'.format(bucket_path=s3_bucket_path, filename=input)
+        bucket.upload_file(input, object_key)
+        object_acl = s3.ObjectAcl(s3_bucket_name, object_key)
+        response = object_acl.put(ACL='public-read')
+        progress.update()
+    progress.close()
