@@ -240,7 +240,7 @@ jobs:
           at: /workspace
       - run:
           name: Install remote benchmark dependencies
-          command: ./tests/benchmarks/aws/install_deps.sh
+          command: TF_EXE_FILE_NAME=/workspace/terraform ./tests/benchmarks/aws/install_deps.sh
 
 
 on-any-branch: &on-any-branch
