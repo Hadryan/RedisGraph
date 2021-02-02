@@ -286,8 +286,6 @@ workflows:
           <<: *on-any-branch
       - build_memcheck:
           <<: *on-any-branch
-          requires:
-            - build
       - package_branch:
           <<: *on-master
           requires:
