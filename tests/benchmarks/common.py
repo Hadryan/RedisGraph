@@ -9,6 +9,7 @@ import boto3
 import requests
 from tqdm import tqdm
 
+
 def viewBar_no_tqdm(a, b):
     res = a / int(b) * 100
     sys.stdout.write("\r    Complete precent: %.2f %%" % (res))
@@ -30,11 +31,14 @@ def copyFileToRemoteSetup(
     srv.close()
     logging.info("")
 
+
 def getFileFromRemoteSetup(
     server_public_ip, username, private_key, local_file, remote_file
 ):
     logging.info(
-        "\Retrieving remote file {} from remote server {} ".format(remote_file, server_public_ip )
+        "\Retrieving remote file {} from remote server {} ".format(
+            remote_file, server_public_ip
+        )
     )
     cnopts = pysftp.CnOpts()
     cnopts.hostkeys = None
@@ -57,9 +61,9 @@ def executeRemoteCommands(server_public_ip, username, private_key, commands):
     for command in commands:
         logging.info('Executing remote command "{}"'.format(command))
         stdin, stdout, stderr = c.exec_command(command)
-        stdout=stdout.readlines()
-        stderr=stderr.readlines()
-        res.append([stdout,stderr])
+        stdout = stdout.readlines()
+        stderr = stderr.readlines()
+        res.append([stdout, stderr])
     c.close()
     return res
 
@@ -81,10 +85,9 @@ def checkDatasetRemoteRequirements(
 
 
 def setupRemoteEnviroment(
-    tf, tf_github_sha, tf_github_actor, tf_setup_name, tf_github_repo, tf_redis_module, access_key,secret_key
+    tf, tf_github_sha, tf_github_actor, tf_setup_name, tf_github_repo, tf_redis_module
 ):
-    return_code, stdout, stderr = tf.init(capture_output=True,backend_config={'access_key': access_key, 
-                'secret_key': secret_key})
+    return_code, stdout, stderr = tf.init(capture_output=True)
     return_code, stdout, stderr = tf.refresh()
     tf_output = tf.output()
     server_private_ip = tf_output["server_private_ip"]["value"][0]
@@ -210,7 +213,16 @@ def setupRemoteBenchmark(
     executeRemoteCommands(client_public_ip, username, private_key, commands)
 
 
-def runRemoteBenchmark(client_public_ip, username, private_key,server_private_ip, server_plaintext_port, benchmark_config, remote_results_file, local_results_file):
+def runRemoteBenchmark(
+    client_public_ip,
+    username,
+    private_key,
+    server_private_ip,
+    server_plaintext_port,
+    benchmark_config,
+    remote_results_file,
+    local_results_file,
+):
     queries_str = prepareBenchmarkCommand(
         server_private_ip, server_plaintext_port, benchmark_config, remote_results_file
     )
@@ -276,13 +288,15 @@ def validateResultExpectations(benchmark_config, results_dict, result):
 
 def upload_artifacts_to_s3(artifacts, s3_bucket_name, s3_bucket_path):
     logging.info("Uploading results to s3")
-    s3 = boto3.resource('s3')
+    s3 = boto3.resource("s3")
     bucket = s3.Bucket(s3_bucket_name)
     progress = tqdm(unit="files", total=len(artifacts))
     for input in artifacts:
-        object_key = '{bucket_path}{filename}'.format(bucket_path=s3_bucket_path, filename=input)
+        object_key = "{bucket_path}{filename}".format(
+            bucket_path=s3_bucket_path, filename=input
+        )
         bucket.upload_file(input, object_key)
         object_acl = s3.ObjectAcl(s3_bucket_name, object_key)
-        response = object_acl.put(ACL='public-read')
+        response = object_acl.put(ACL="public-read")
         progress.update()
     progress.close()

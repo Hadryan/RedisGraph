@@ -80,22 +80,22 @@ tf_setup_name_sufix = "{}-{}".format(args.setup_name_sufix, tf_github_sha)
 s3_bucket_name = args.s3_bucket_name
 local_module_file = args.module_path
 
-EC2_ACCESS_KEY = os.getenv("EC2_ACCESS_KEY", None)
+EC2_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID", None)
 EC2_PRIVATE_PEM = os.getenv("EC2_PRIVATE_PEM", None)
-EC2_REGION = os.getenv("EC2_REGION", None)
-EC2_SECRET_KEY = os.getenv("EC2_SECRET_KEY", None)
+EC2_REGION = os.getenv("AWS_DEFAULT_REGION", None)
+EC2_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY", None)
 
 if EC2_ACCESS_KEY is None or EC2_ACCESS_KEY == "":
-    logging.error("missing required EC2_ACCESS_KEY env variable")
+    logging.error("missing required AWS_ACCESS_KEY_ID env variable")
     exit(1)
 if EC2_PRIVATE_PEM is None or EC2_PRIVATE_PEM == "":
     logging.error("missing required EC2_PRIVATE_PEM env variable")
     exit(1)
 if EC2_REGION is None or EC2_REGION == "":
-    logging.error("missing required EC2_REGION env variable")
+    logging.error("missing required AWS_DEFAULT_REGION env variable")
     exit(1)
 if EC2_SECRET_KEY is None or EC2_SECRET_KEY == "":
-    logging.error("missing required EC2_SECRET_KEY env variable")
+    logging.error("missing required AWS_SECRET_ACCESS_KEY env variable")
     exit(1)
 
 logging.info("Using the following vars on terraform deployment:")
@@ -167,8 +167,6 @@ for f in files:
                     tf_setup_name,
                     tf_github_repo,
                     tf_redis_module,
-                    EC2_ACCESS_KEY,
-                    EC2_SECRET_KEY
                 )
 
                 # setup RedisGraph

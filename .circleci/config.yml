@@ -248,14 +248,10 @@ jobs:
           name: Run CI benchmarks on aws
           command: |
               cd ./tests/benchmarks
-              export EC2_ACCESS_KEY=$PERFORMANCE_EC2_ACCESS_KEY
-              export EC2_SECRET_KEY=$PERFORMANCE_EC2_SECRET_KEY
-              export EC2_REGION=$PERFORMANCE_EC2_REGION
+              export AWS_ACCESS_KEY_ID=$PERFORMANCE_EC2_ACCESS_KEY
+              export AWS_SECRET_ACCESS_KEY=$PERFORMANCE_EC2_SECRET_KEY
+              export AWS_DEFAULT_REGION=$PERFORMANCE_EC2_REGION
               export EC2_PRIVATE_PEM=$PERFORMANCE_EC2_PRIVATE_PEM
-              mkdir -p ~/.aws
-              echo "[default]" >> ~/.aws/credentials
-              echo "aws_access_key_id = $PERFORMANCE_EC2_ACCESS_KEY" >> ~/.aws/credentials
-              echo "aws_secret_access_key = $PERFORMANCE_EC2_SECRET_KEY" >> ~/.aws/credentials
 
               python3 remote-runner.py \
                 --terraform_bin_path /workspace/terraform \
