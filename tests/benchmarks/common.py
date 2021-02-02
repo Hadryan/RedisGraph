@@ -81,9 +81,10 @@ def checkDatasetRemoteRequirements(
 
 
 def setupRemoteEnviroment(
-    tf, tf_github_sha, tf_github_actor, tf_setup_name, tf_github_repo, tf_redis_module
+    tf, tf_github_sha, tf_github_actor, tf_setup_name, tf_github_repo, tf_redis_module, access_key,secret_key
 ):
-    return_code, stdout, stderr = tf.init(capture_output=True)
+    return_code, stdout, stderr = tf.init(capture_output=True,backend_config={'access_key': access_key, 
+                'secret_key': secret_key})
     return_code, stdout, stderr = tf.refresh()
     tf_output = tf.output()
     server_private_ip = tf_output["server_private_ip"]["value"][0]

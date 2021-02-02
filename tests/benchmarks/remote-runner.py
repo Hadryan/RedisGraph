@@ -81,14 +81,14 @@ s3_bucket_name = args.s3_bucket_name
 local_module_file = args.module_path
 
 EC2_ACCESS_KEY = os.getenv("EC2_ACCESS_KEY", None)
-PERFORMANCE_EC2_PRIVATE_PEM = os.getenv("PERFORMANCE_EC2_PRIVATE_PEM", None)
+EC2_PRIVATE_PEM = os.getenv("EC2_PRIVATE_PEM", None)
 EC2_REGION = os.getenv("EC2_REGION", None)
 EC2_SECRET_KEY = os.getenv("EC2_SECRET_KEY", None)
 
 if EC2_ACCESS_KEY is None or EC2_ACCESS_KEY == "":
     logging.error("missing required EC2_ACCESS_KEY env variable")
     exit(1)
-if PERFORMANCE_EC2_PRIVATE_PEM is None or PERFORMANCE_EC2_PRIVATE_PEM == "":
+if EC2_PRIVATE_PEM is None or EC2_PRIVATE_PEM == "":
     logging.error("missing required EC2_PRIVATE_PEM env variable")
     exit(1)
 if EC2_REGION is None or EC2_REGION == "":
@@ -111,7 +111,8 @@ files = pathlib.Path().glob("*.yml")
 remote_benchmark_setups = pathlib.Path().glob("./aws/tf-*")
 
 with open(private_key, "w") as tmp_private_key_file:
-    tmp_private_key_file.write(PERFORMANCE_EC2_PRIVATE_PEM)
+    tmp_private_key_file.write(EC2_PRIVATE_PEM)
+
 
 def get_run_full_filename(test_name, deployment_type, git_sha, start_time_str):
     benchmark_output_filename = (
@@ -147,7 +148,10 @@ for f in files:
                 )
                 tf_setup_name = "{}{}".format(remote_setup, tf_setup_name_sufix)
                 logging.info("Using full setup name: {}".format(tf_setup_name))
-                tf = Terraform(working_dir=remote_setup, terraform_bin_path=tf_bin_path)
+                tf = Terraform(
+                    working_dir=remote_setup,
+                    terraform_bin_path=tf_bin_path,
+                )
                 (
                     return_code,
                     username,
@@ -163,6 +167,8 @@ for f in files:
                     tf_setup_name,
                     tf_github_repo,
                     tf_redis_module,
+                    EC2_ACCESS_KEY,
+                    EC2_SECRET_KEY
                 )
 
                 # setup RedisGraph
