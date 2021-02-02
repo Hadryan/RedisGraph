@@ -284,8 +284,8 @@ workflows:
     jobs:
       - build:
           <<: *on-any-branch
-      - build_memcheck:
-          <<: *on-any-branch
+      # - build_memcheck:
+      #     <<: *on-any-branch
       - package_branch:
           <<: *on-master
           requires:
